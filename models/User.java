@@ -1,7 +1,6 @@
 package com.example.bookmyshow.models;
 
 import com.example.bookmyshow.models.enums.PaymentStatus;
-import cucumber.api.java.zh_cn.那么;
 import jakarta.persistence.Entity;
 import jakarta.persistence.OneToMany;
 import lombok.Getter;
