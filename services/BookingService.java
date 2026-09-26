@@ -75,8 +75,12 @@ public class BookingService {
         }
         Show bookedShow = optionalShow.get();
 
-        //3. Get show seat objects
+        //3. Get show seat objects. Every requested seat must exist and belong to this show.
         List<ShowSeat> showSeats =  showSeatRepositories.findAllById(showSeatId);
+        if(showSeats.size() != showSeatId.size()
+                || showSeats.stream().anyMatch(showSeat -> showSeat.getShow().getId() != bookedShow.getId())){
+            throw new ShowSeatNotAvailableException("Seat Not Available for this show");
+        }
 
         //4. & 5. Check the seats are free: AVAILABLE, or BLOCKED by a hold older than 15 minutes
         //   (that booking was never paid, so its hold has expired)
