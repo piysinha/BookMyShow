@@ -78,11 +78,14 @@ public class BookingService {
         //3. Get show seat objects
         List<ShowSeat> showSeats =  showSeatRepositories.findAllById(showSeatId);
 
-        //4. & 5. Check if the seats are available = Available or Blocked
+        //4. & 5. Check the seats are free: AVAILABLE, or BLOCKED by a hold older than 15 minutes
+        //   (that booking was never paid, so its hold has expired)
         for(ShowSeat showSeat : showSeats){
             Date lockedAt = showSeat.getLockedAt();
             ShowSeatStatus status = showSeat.getStatus();
-            if(status != ShowSeatStatus.AVAILABLE || (status == ShowSeatStatus.BOOKED && Duration.between(new Date().toInstant(),lockedAt.toInstant()).toMinutes() < 15)){
+            boolean holdExpired = status == ShowSeatStatus.BLOCKED && lockedAt != null
+                    && Duration.between(lockedAt.toInstant(), new Date().toInstant()).toMinutes() >= 15;
+            if(status != ShowSeatStatus.AVAILABLE && !holdExpired){
                     throw new ShowSeatNotAvailableException("Seat Not Available");
                 }
             }
