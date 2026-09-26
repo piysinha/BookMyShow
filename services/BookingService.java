@@ -12,7 +12,6 @@ import com.example.bookmyshow.repositories.BookingRepositories;
 import com.example.bookmyshow.repositories.ShowRepositories;
 import com.example.bookmyshow.repositories.ShowSeatRepositories;
 import com.example.bookmyshow.repositories.UserRepositories;
-import gherkin.lexer.Da;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
@@ -76,14 +75,21 @@ public class BookingService {
         }
         Show bookedShow = optionalShow.get();
 
-        //3. Get show seat objects
+        //3. Get show seat objects. Every requested seat must exist and belong to this show.
         List<ShowSeat> showSeats =  showSeatRepositories.findAllById(showSeatId);
+        if(showSeats.size() != showSeatId.size()
+                || showSeats.stream().anyMatch(showSeat -> showSeat.getShow().getId() != bookedShow.getId())){
+            throw new ShowSeatNotAvailableException("Seat Not Available for this show");
+        }
 
-        //4. & 5. Check if the seats are available = Available or Blocked
+        //4. & 5. Check the seats are free: AVAILABLE, or BLOCKED by a hold older than 15 minutes
+        //   (that booking was never paid, so its hold has expired)
         for(ShowSeat showSeat : showSeats){
             Date lockedAt = showSeat.getLockedAt();
             ShowSeatStatus status = showSeat.getStatus();
-            if(status != ShowSeatStatus.AVAILABLE || (status == ShowSeatStatus.BOOKED && Duration.between(new Date().toInstant(),lockedAt.toInstant()).toMinutes() < 15)){
+            boolean holdExpired = status == ShowSeatStatus.BLOCKED && lockedAt != null
+                    && Duration.between(lockedAt.toInstant(), new Date().toInstant()).toMinutes() >= 15;
+            if(status != ShowSeatStatus.AVAILABLE && !holdExpired){
                     throw new ShowSeatNotAvailableException("Seat Not Available");
                 }
             }
